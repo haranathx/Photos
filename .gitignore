@@ -27,3 +27,4 @@ backend
 .env.local
 .env
 .vercel
+importantText.txt
