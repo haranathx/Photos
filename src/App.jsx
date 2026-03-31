@@ -21,6 +21,39 @@ function App() {
     fetchImages();
   }, []);
 
+  // 🔥 ADD THIS HERE
+  useEffect(() => {
+    const grid = document.querySelector(".gallery");
+    if (!grid) return;
+
+    const resizeGridItems = () => {
+      const rowHeight = 10;
+      const rowGap = 15;
+
+      grid.querySelectorAll(".image-wrapper").forEach((item) => {
+        const img = item.querySelector("img");
+
+        if (img.complete) {
+          const height = img.getBoundingClientRect().height;
+          const span = Math.ceil((height + rowGap) / (rowHeight + rowGap));
+          item.style.gridRowEnd = `span ${span}`;
+        } else {
+          img.onload = () => {
+            const height = img.getBoundingClientRect().height;
+            const span = Math.ceil((height + rowGap) / (rowHeight + rowGap));
+            item.style.gridRowEnd = `span ${span}`;
+          };
+        }
+      });
+    };
+
+    resizeGridItems();
+    window.addEventListener("resize", resizeGridItems);
+
+    return () => window.removeEventListener("resize", resizeGridItems);
+  }, [images]);
+
+
   // 🔒 Disable right-click globally
   useEffect(() => {
     const disableRightClick = (e) => e.preventDefault();
@@ -31,10 +64,12 @@ function App() {
     };
   }, []);
 
-  // 🔒 Block inspect shortcuts + ESC + Arrow navigation
+  // 🔥 SORT (LIFO → latest first)
+  const displayImages = [...images].sort((a, b) => b.id - a.id);
+
+  // 🔒 Keyboard controls
   useEffect(() => {
     const handleKey = (e) => {
-      // Block common dev shortcuts
       if (
         e.key === "F12" ||
         (e.ctrlKey && e.shiftKey && e.key === "I") ||
@@ -50,32 +85,32 @@ function App() {
 
       if (e.key === "ArrowRight") {
         setSelectedIndex((prev) =>
-          prev === images.length - 1 ? 0 : prev + 1
+          prev === displayImages.length - 1 ? 0 : prev + 1
         );
       }
 
       if (e.key === "ArrowLeft") {
         setSelectedIndex((prev) =>
-          prev === 0 ? images.length - 1 : prev - 1
+          prev === 0 ? displayImages.length - 1 : prev - 1
         );
       }
     };
 
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [selectedIndex, images.length]);
+  }, [selectedIndex, displayImages.length]);
 
   const showNext = (e) => {
     e.stopPropagation();
     setSelectedIndex((prev) =>
-      prev === images.length - 1 ? 0 : prev + 1
+      prev === displayImages.length - 1 ? 0 : prev + 1
     );
   };
 
   const showPrev = (e) => {
     e.stopPropagation();
     setSelectedIndex((prev) =>
-      prev === 0 ? images.length - 1 : prev - 1
+      prev === 0 ? displayImages.length - 1 : prev - 1
     );
   };
 
@@ -83,8 +118,9 @@ function App() {
     <div className="container">
       <h1>Photos</h1>
 
+      {/* ✅ GRID LAYOUT (correct order) */}
       <div className="gallery">
-        {images.map((img, index) => (
+        {displayImages.map((img, index) => (
           <div key={img.id} className="image-wrapper">
             <img
               src={img.url}
@@ -100,7 +136,6 @@ function App() {
       {/* 🔥 Modal */}
       {selectedIndex !== null && (
         <div className="modal" onClick={() => setSelectedIndex(null)}>
-
           {/* Close */}
           <span
             className="close-btn"
@@ -117,10 +152,10 @@ function App() {
           {/* Image */}
           <img
             className="modal-image"
-            src={images[selectedIndex].url}
+            src={displayImages[selectedIndex].url}
             alt=""
             onClick={(e) => e.stopPropagation()}
-            onContextMenu={(e) => e.preventDefault()}  // 🔒 disabled here too
+            onContextMenu={(e) => e.preventDefault()}
             draggable="false"
           />
 
